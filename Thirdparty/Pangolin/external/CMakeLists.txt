@@ -10,8 +10,8 @@ if( BUILD_EXTERN_GLEW )
 set(glew_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/glew")
 ExternalProject_Add( __glew
   PREFIX "${glew_PREFIX}"
-  GIT_REPOSITORY https://github.com/Perlmint/glew-cmake.git
-  GIT_TAG 7574ab4d00b683e56adbfdec7da636529dfe65d8
+  GIT_REPOSITORY https://github.com/sapt36/glew_updateCMAKEversion.git
+  GIT_TAG v1.0.0
   INSTALL_DIR ${glew_PREFIX}
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${glew_PREFIX}
              -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
@@ -50,7 +50,7 @@ set(zlib_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/zlib")
 ExternalProject_Add( __zlib
   PREFIX "${zlib_PREFIX}"
   GIT_REPOSITORY https://github.com/madler/zlib.git
-  GIT_TAG v1.2.8
+  GIT_TAG v1.3.1
   INSTALL_DIR ${zlib_PREFIX}
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${zlib_PREFIX}
              -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
@@ -74,7 +74,7 @@ set(libpng_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/libpng")
 ExternalProject_Add( __libpng
   PREFIX "${libpng_PREFIX}"
   GIT_REPOSITORY https://github.com/glennrp/libpng.git
-  GIT_TAG v1.6.18
+  GIT_TAG v1.6.48
   INSTALL_DIR ${libpng_PREFIX}
   CMAKE_ARGS  -DCMAKE_INSTALL_PREFIX=${libpng_PREFIX}
               -DZLIB_INCLUDE_DIR=${zlib_PREFIX}/include
@@ -120,8 +120,8 @@ if( BUILD_EXTERN_LIBJPEG )
 set(libjpeg_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/libjpeg")
 ExternalProject_Add( __libjpeg
   PREFIX "${libjpeg_PREFIX}"
-  GIT_REPOSITORY https://github.com/LuaDist/libjpeg.git
-  GIT_TAG bc8f8be222287fec977ec3f47a5cb065cceb2ee9
+  GIT_REPOSITORY https://github.com/sapt36/libjpeg_updateCMAKEversion.git
+  GIT_TAG v1.0.0
   INSTALL_DIR ${libjpeg_PREFIX}
   CMAKE_ARGS  -DCMAKE_INSTALL_PREFIX=${libjpeg_PREFIX}
               -DBUILD_SHARED_LIBS=false
