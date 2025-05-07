@@ -394,7 +394,7 @@ void PnPsolver::choose_control_points(void)
 
   for(int i = 0; i < number_of_correspondences; i++)
     for(int j = 0; j < 3; j++)
-      PW0.data.db[3 * i + j] = pws[3 * i + j] - cws[0][j];
+    PW0.at<double>(3 * i, j) = pws[3 * i + j] - cws[0][j];
 
   cv::mulTransposed(PW0, PW0tPW0, true);
   cv::SVD::compute(PW0tPW0, DC, cv::noArray(), UCt, cv::SVD::MODIFY_A);
@@ -435,7 +435,7 @@ void PnPsolver::compute_barycentric_coordinates(void)
 void PnPsolver::fill_M(cv::Mat M,
 		  const int row, const double * as, const double u, const double v)
 {
-  double * M1 = M.data.db + row * 12;
+  double * M1 = M.ptr<double>(0) + row * 12;
   double * M2 = M1 + 12;
 
   for(int i = 0; i < 4; i++) {
@@ -873,8 +873,10 @@ void PnPsolver::gauss_newton(const cv::Mat L_6x10, const cv::Mat Rho,
   cv::Mat B = cv::Mat(6, 1, CV_64F, b);
   cv::Mat X = cv::Mat(4, 1, CV_64F, x);
 
+  double* l6_ptr  = (double*)L_6x10.ptr<double>(0);
+  double* rho_ptr = (double*)Rho.ptr<double>(0);
   for(int k = 0; k < iterations_number; k++) {
-    compute_A_and_b_gauss_newton(L_6x10.data.db, Rho.data.db,
+    compute_A_and_b_gauss_newton(l6_ptr, rho_ptr,
 				 betas, A, B);
     qr_solve(A, B, X);
 
@@ -901,7 +903,7 @@ void PnPsolver::qr_solve(cv::Mat A, cv::Mat b, cv::Mat X)
     A2 = new double[nr];
   }
 
-  double * pA = A.data.db, * ppAkk = pA;
+  double* pA = A.ptr<double>(0), * ppAkk = pA;
   for(int k = 0; k < nc; k++) {
     double * ppAik = ppAkk, eta = fabs(*ppAik);
     for(int i = k + 1; i < nr; i++) {
@@ -945,7 +947,7 @@ void PnPsolver::qr_solve(cv::Mat A, cv::Mat b, cv::Mat X)
   }
 
   // b <- Qt b
-  double * ppAjj = pA, * pb = b.data.db;
+  double * ppAjj = pA, * pb = b.ptr<double>(0);
   for(int j = 0; j < nc; j++) {
     double * ppAij = ppAjj, tau = 0;
     for(int i = j; i < nr; i++)	{
@@ -962,7 +964,7 @@ void PnPsolver::qr_solve(cv::Mat A, cv::Mat b, cv::Mat X)
   }
 
   // X = R-1 b
-  double * pX = X.data.db;
+  double * pX = X.ptr<double>(0);
   pX[nc - 1] = pb[nc - 1] / A2[nc - 1];
   for(int i = nc - 2; i >= 0; i--) {
     double * ppAij = pA + i * nc + (i + 1), sum = 0;
