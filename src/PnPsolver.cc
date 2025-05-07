@@ -156,13 +156,13 @@ void PnPsolver::SetRansacParameters(double probability, int minInliers, int maxI
         mvMaxError[i] = mvSigma2[i]*th2;
 }
 
-cv::Mat PnPsolver::find(vector<bool> vbInliers, int nInliers)
+cv::Mat PnPsolver::find(vector<bool> &vbInliers, int &nInliers)
 {
     bool bFlag;
     return iterate(mRansacMaxIts,bFlag,vbInliers,nInliers);    
 }
 
-cv::Mat PnPsolver::iterate(int nIterations, bool bNoMore, vector<bool> vbInliers, int nInliers)
+cv::Mat PnPsolver::iterate(int nIterations, bool &bNoMore, vector<bool> &vbInliers, int &nInliers)
 {
     bNoMore = false;
     vbInliers.clear();
@@ -502,15 +502,15 @@ double PnPsolver::compute_pose(double R[3][3], double t[3])
   double Rs[4][3][3], ts[4][3];
 
   find_betas_approx_1(&L_6x10, &Rho, Betas[1]);
-  gauss_newton(&L_6x10, &Rho, Betas[1]);
+  gauss_newton(L_6x10, Rho, Betas[1]);
   rep_errors[1] = compute_R_and_t(ut, Betas[1], Rs[1], ts[1]);
 
   find_betas_approx_2(&L_6x10, &Rho, Betas[2]);
-  gauss_newton(&L_6x10, &Rho, Betas[2]);
+  gauss_newton(L_6x10, Rho, Betas[2]);
   rep_errors[2] = compute_R_and_t(ut, Betas[2], Rs[2], ts[2]);
 
   find_betas_approx_3(&L_6x10, &Rho, Betas[3]);
-  gauss_newton(&L_6x10, &Rho, Betas[3]);
+  gauss_newton(L_6x10, Rho, Betas[3]);
   rep_errors[3] = compute_R_and_t(ut, Betas[3], Rs[3], ts[3]);
 
   int N = 1;
@@ -714,7 +714,7 @@ void PnPsolver::find_betas_approx_2(const cv::Mat L_6x10, const cv::Mat Rho,
     L_6x3.at<double>(i, 2) = oldVal;
   }
 
-  cv::solve(&L_6x3, Rho, &B3, cv::DECOMP_SVD);
+  cv::solve(L_6x3, Rho, B3, cv::DECOMP_SVD);
 
   if (b3[0] < 0) {
     betas[0] = sqrt(-b3[0]);
@@ -753,7 +753,7 @@ void PnPsolver::find_betas_approx_3(const cv::Mat L_6x10, const cv::Mat Rho,
     L_6x5.at<double>(i, 4) = oldVal;
   }
 
-  cv::solve(&L_6x5, Rho, &B5, cv::DECOMP_SVD);
+  cv::solve(L_6x5, Rho, B5, cv::DECOMP_SVD);
 
   if (b5[0] < 0) {
     betas[0] = sqrt(-b5[0]);
@@ -822,8 +822,8 @@ void PnPsolver::compute_rho(double * rho)
 void PnPsolver::compute_A_and_b_gauss_newton(const double *l_6x10,
   const double *rho,
   double betas[4],
-  cv::Mat &A,
-  cv::Mat &b)
+  cv::Mat A,
+  cv::Mat b)
 {
   // 假設 A 是 6×4, b 是 6×1, 型別都是 CV_64F
   for(int i = 0; i < 6; ++i) {
@@ -875,8 +875,8 @@ void PnPsolver::gauss_newton(const cv::Mat L_6x10, const cv::Mat Rho,
 
   for(int k = 0; k < iterations_number; k++) {
     compute_A_and_b_gauss_newton(L_6x10.data.db, Rho.data.db,
-				 betas, &A, &B);
-    qr_solve(&A, &B, &X);
+				 betas, A, B);
+    qr_solve(A, B, X);
 
     for(int i = 0; i < 4; i++)
       betas[i] += x[i];

@@ -67,9 +67,9 @@ class PnPsolver {
   void SetRansacParameters(double probability = 0.99, int minInliers = 8 , int maxIterations = 300, int minSet = 4, float epsilon = 0.4,
                            float th2 = 5.991);
 
-  cv::Mat find(vector<bool> vbInliers, int nInliers);
+  cv::Mat find(vector<bool> &vbInliers, int &nInliers);
 
-  cv::Mat iterate(int nIterations, bool bNoMore, vector<bool> vbInliers, int nInliers);
+  cv::Mat iterate(int nIterations, bool &bNoMore, vector<bool> &vbInliers, int &nInliers);
 
  private:
 
@@ -102,7 +102,7 @@ class PnPsolver {
   void find_betas_approx_1(const cv::Mat * L_6x10, const cv::Mat * Rho, double * betas);
   void find_betas_approx_2(const cv::Mat * L_6x10, const cv::Mat * Rho, double * betas);
   void find_betas_approx_3(const cv::Mat * L_6x10, const cv::Mat * Rho, double * betas);
-  void qr_solve(cv::Mat * A, cv::Mat * b, cv::Mat * X);
+  void qr_solve(cv::Mat A, cv::Mat b, cv::Mat X);
 
   double dot(const double * v1, const double * v2);
   double dist2(const double * p1, const double * p2);
@@ -110,7 +110,7 @@ class PnPsolver {
   void compute_rho(double * rho);
   void compute_L_6x10(const double * ut, double * l_6x10);
 
-  void gauss_newton(const cv::Mat * L_6x10, const cv::Mat * Rho, double current_betas[4]);
+  void gauss_newton(const cv::Mat  L_6x10, const cv::Mat  Rho, double current_betas[4]);
   void compute_A_and_b_gauss_newton(const double * l_6x10, const double * rho,
 				    double cb[4], cv::Mat A, cv::Mat b);
 
