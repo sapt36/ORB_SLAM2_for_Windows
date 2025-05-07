@@ -417,7 +417,7 @@ void PnPsolver::compute_barycentric_coordinates(void)
     for(int j = 1; j < 4; j++)
       cc[3 * i + j - 1] = cws[j][i] - cws[0][i];
 
-  cv::invert(&CC, &CC_inv, cv::DECOMP_SVD);
+  cv::invert(CC, CC_inv, cv::DECOMP_SVD);
   double * ci = cc_inv;
   for(int i = 0; i < number_of_correspondences; i++) {
     double * pi = pws + 3 * i;
@@ -670,13 +670,17 @@ void PnPsolver::find_betas_approx_1(const cv::Mat L_6x10, const cv::Mat Rho,
   cv::Mat B4    = cv::Mat(4, 1, CV_64F, b4);
 
   for(int i = 0; i < 6; i++) {
-    cvmSet(&L_6x4, i, 0, cvmGet(L_6x10, i, 0));
-    cvmSet(&L_6x4, i, 1, cvmGet(L_6x10, i, 1));
-    cvmSet(&L_6x4, i, 2, cvmGet(L_6x10, i, 3));
-    cvmSet(&L_6x4, i, 3, cvmGet(L_6x10, i, 6));
+    double oldVal = L_6x10.at<double>(i, 0);
+    L_6x4.at<double>(i, 0) = oldVal;
+    oldVal = L_6x10.at<double>(i, 1);
+    L_6x4.at<double>(i, 1) = oldVal;
+    oldVal = L_6x10.at<double>(i, 3);
+    L_6x4.at<double>(i, 2) = oldVal;
+    oldVal = L_6x10.at<double>(i, 6);
+    L_6x4.at<double>(i, 3) = oldVal;
   }
 
-  cv::solve(&L_6x4, Rho, &B4, cv::DECOMP_SVD);
+  cv::solve(L_6x4, Rho, B4, cv::DECOMP_SVD);
 
   if (b4[0] < 0) {
     betas[0] = sqrt(-b4[0]);
@@ -702,9 +706,12 @@ void PnPsolver::find_betas_approx_2(const cv::Mat L_6x10, const cv::Mat Rho,
   cv::Mat B3     = cv::Mat(3, 1, CV_64F, b3);
 
   for(int i = 0; i < 6; i++) {
-    cvmSet(&L_6x3, i, 0, cvmGet(L_6x10, i, 0));
-    cvmSet(&L_6x3, i, 1, cvmGet(L_6x10, i, 1));
-    cvmSet(&L_6x3, i, 2, cvmGet(L_6x10, i, 2));
+    double oldVal = L_6x10.at<double>(i, 0);
+    L_6x3.at<double>(i, 0) = oldVal;
+    oldVal = L_6x10.at<double>(i, 1);
+    L_6x3.at<double>(i, 1) = oldVal;
+    oldVal = L_6x10.at<double>(i, 2);
+    L_6x3.at<double>(i, 2) = oldVal;
   }
 
   cv::solve(&L_6x3, Rho, &B3, cv::DECOMP_SVD);
@@ -734,11 +741,16 @@ void PnPsolver::find_betas_approx_3(const cv::Mat L_6x10, const cv::Mat Rho,
   cv::Mat B5    = cv::Mat(5, 1, CV_64F, b5);
 
   for(int i = 0; i < 6; i++) {
-    cvmSet(&L_6x5, i, 0, cvmGet(L_6x10, i, 0));
-    cvmSet(&L_6x5, i, 1, cvmGet(L_6x10, i, 1));
-    cvmSet(&L_6x5, i, 2, cvmGet(L_6x10, i, 2));
-    cvmSet(&L_6x5, i, 3, cvmGet(L_6x10, i, 3));
-    cvmSet(&L_6x5, i, 4, cvmGet(L_6x10, i, 4));
+    double oldVal = L_6x10.at<double>(i, 0);
+    L_6x5.at<double>(i, 0) = oldVal;
+    oldVal = L_6x10.at<double>(i, 1);
+    L_6x5.at<double>(i, 1) = oldVal;
+    oldVal = L_6x10.at<double>(i, 2);
+    L_6x5.at<double>(i, 2) = oldVal;
+    oldVal = L_6x10.at<double>(i, 3);
+    L_6x5.at<double>(i, 3) = oldVal;
+    oldVal = L_6x10.at<double>(i, 4);
+    L_6x5.at<double>(i, 4) = oldVal;
   }
 
   cv::solve(&L_6x5, Rho, &B5, cv::DECOMP_SVD);
@@ -807,31 +819,47 @@ void PnPsolver::compute_rho(double * rho)
   rho[5] = dist2(cws[2], cws[3]);
 }
 
-void PnPsolver::compute_A_and_b_gauss_newton(const double * l_6x10, const double * rho,
-					double betas[4], cv::Mat A, cv::Mat b)
+void PnPsolver::compute_A_and_b_gauss_newton(const double *l_6x10,
+  const double *rho,
+  double betas[4],
+  cv::Mat &A,
+  cv::Mat &b)
 {
-  for(int i = 0; i < 6; i++) {
-    const double * rowL = l_6x10 + i * 10;
-    double * rowA = A.data.db + i * 4;
+  // 假設 A 是 6×4, b 是 6×1, 型別都是 CV_64F
+  for(int i = 0; i < 6; ++i) {
+    const double *rowL = l_6x10 + i*10;
 
-    rowA[0] = 2 * rowL[0] * betas[0] +     rowL[1] * betas[1] +     rowL[3] * betas[2] +     rowL[6] * betas[3];
-    rowA[1] =     rowL[1] * betas[0] + 2 * rowL[2] * betas[1] +     rowL[4] * betas[2] +     rowL[7] * betas[3];
-    rowA[2] =     rowL[3] * betas[0] +     rowL[4] * betas[1] + 2 * rowL[5] * betas[2] +     rowL[8] * betas[3];
-    rowA[3] =     rowL[6] * betas[0] +     rowL[7] * betas[1] +     rowL[8] * betas[2] + 2 * rowL[9] * betas[3];
+    // 直接用 at<double> 填 A 的每一欄
+    A.at<double>(i,0) = 2*rowL[0]*betas[0]
+    +   rowL[1]*betas[1]
+    +   rowL[3]*betas[2]
+    +   rowL[6]*betas[3];
+    A.at<double>(i,1) =     rowL[1]*betas[0]
+    + 2* rowL[2]*betas[1]
+    +   rowL[4]*betas[2]
+    +   rowL[7]*betas[3];
+    A.at<double>(i,2) =     rowL[3]*betas[0]
+    +   rowL[4]*betas[1]
+    + 2* rowL[5]*betas[2]
+    +   rowL[8]*betas[3];
+    A.at<double>(i,3) =     rowL[6]*betas[0]
+    +   rowL[7]*betas[1]
+    +   rowL[8]*betas[2]
+    + 2* rowL[9]*betas[3];
 
-    cvmSet(b, i, 0, rho[i] -
-	   (
-	    rowL[0] * betas[0] * betas[0] +
-	    rowL[1] * betas[0] * betas[1] +
-	    rowL[2] * betas[1] * betas[1] +
-	    rowL[3] * betas[0] * betas[2] +
-	    rowL[4] * betas[1] * betas[2] +
-	    rowL[5] * betas[2] * betas[2] +
-	    rowL[6] * betas[0] * betas[3] +
-	    rowL[7] * betas[1] * betas[3] +
-	    rowL[8] * betas[2] * betas[3] +
-	    rowL[9] * betas[3] * betas[3]
-	    ));
+    // 計算 b 的值
+    double val = rho[i]
+    - ( rowL[0]*betas[0]*betas[0]
+    + rowL[1]*betas[0]*betas[1]
+    + rowL[2]*betas[1]*betas[1]
+    + rowL[3]*betas[0]*betas[2]
+    + rowL[4]*betas[1]*betas[2]
+    + rowL[5]*betas[2]*betas[2]
+    + rowL[6]*betas[0]*betas[3]
+    + rowL[7]*betas[1]*betas[3]
+    + rowL[8]*betas[2]*betas[3]
+    + rowL[9]*betas[3]*betas[3] );
+    b.at<double>(i,0) = val;
   }
 }
 
