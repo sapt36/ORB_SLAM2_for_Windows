@@ -99,9 +99,9 @@ class PnPsolver {
 
   void solve_for_sign(void);
 
-  void find_betas_approx_1(const cv::Mat * L_6x10, const cv::Mat * Rho, double * betas);
-  void find_betas_approx_2(const cv::Mat * L_6x10, const cv::Mat * Rho, double * betas);
-  void find_betas_approx_3(const cv::Mat * L_6x10, const cv::Mat * Rho, double * betas);
+  void find_betas_approx_1(const cv::Mat L_6x10, const cv::Mat Rho, double * betas);
+  void find_betas_approx_2(const cv::Mat L_6x10, const cv::Mat Rho, double * betas);
+  void find_betas_approx_3(const cv::Mat L_6x10, const cv::Mat Rho, double * betas);
   void qr_solve(cv::Mat A, cv::Mat b, cv::Mat X);
 
   double dot(const double * v1, const double * v2);

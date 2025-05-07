@@ -501,15 +501,15 @@ double PnPsolver::compute_pose(double R[3][3], double t[3])
   double Betas[4][4], rep_errors[4];
   double Rs[4][3][3], ts[4][3];
 
-  find_betas_approx_1(&L_6x10, &Rho, Betas[1]);
+  find_betas_approx_1(L_6x10, Rho, Betas[1]);
   gauss_newton(L_6x10, Rho, Betas[1]);
   rep_errors[1] = compute_R_and_t(ut, Betas[1], Rs[1], ts[1]);
 
-  find_betas_approx_2(&L_6x10, &Rho, Betas[2]);
+  find_betas_approx_2(L_6x10, Rho, Betas[2]);
   gauss_newton(L_6x10, Rho, Betas[2]);
   rep_errors[2] = compute_R_and_t(ut, Betas[2], Rs[2], ts[2]);
 
-  find_betas_approx_3(&L_6x10, &Rho, Betas[3]);
+  find_betas_approx_3(L_6x10, Rho, Betas[3]);
   gauss_newton(L_6x10, Rho, Betas[3]);
   rep_errors[3] = compute_R_and_t(ut, Betas[3], Rs[3], ts[3]);
 
@@ -825,42 +825,43 @@ void PnPsolver::compute_A_and_b_gauss_newton(const double *l_6x10,
   cv::Mat A,
   cv::Mat b)
 {
-  // 假設 A 是 6×4, b 是 6×1, 型別都是 CV_64F
-  for(int i = 0; i < 6; ++i) {
-    const double *rowL = l_6x10 + i*10;
+// 假設 A 是 6×4, b 是 6×1, 型別都是 CV_64F
+for(int i = 0; i < 6; ++i) {
+const double *rowL = l_6x10 + i*10;
 
-    // 直接用 at<double> 填 A 的每一欄
-    A.at<double>(i,0) = 2*rowL[0]*betas[0]
-    +   rowL[1]*betas[1]
-    +   rowL[3]*betas[2]
-    +   rowL[6]*betas[3];
-    A.at<double>(i,1) =     rowL[1]*betas[0]
-    + 2* rowL[2]*betas[1]
-    +   rowL[4]*betas[2]
-    +   rowL[7]*betas[3];
-    A.at<double>(i,2) =     rowL[3]*betas[0]
-    +   rowL[4]*betas[1]
-    + 2* rowL[5]*betas[2]
-    +   rowL[8]*betas[3];
-    A.at<double>(i,3) =     rowL[6]*betas[0]
-    +   rowL[7]*betas[1]
-    +   rowL[8]*betas[2]
-    + 2* rowL[9]*betas[3];
+// 填 A
+A.at<double>(i,0) = 2*rowL[0]*betas[0]
++   rowL[1]*betas[1]
++   rowL[3]*betas[2]
++   rowL[6]*betas[3];
+A.at<double>(i,1) =     rowL[1]*betas[0]
++ 2* rowL[2]*betas[1]
++   rowL[4]*betas[2]
++   rowL[7]*betas[3];
+A.at<double>(i,2) =     rowL[3]*betas[0]
++   rowL[4]*betas[1]
++ 2* rowL[5]*betas[2]
++   rowL[8]*betas[3];
+A.at<double>(i,3) =     rowL[6]*betas[0]
++   rowL[7]*betas[1]
++   rowL[8]*betas[2]
++ 2* rowL[9]*betas[3];
 
-    // 計算 b 的值
-    double val = rho[i]
-    - ( rowL[0]*betas[0]*betas[0]
-    + rowL[1]*betas[0]*betas[1]
-    + rowL[2]*betas[1]*betas[1]
-    + rowL[3]*betas[0]*betas[2]
-    + rowL[4]*betas[1]*betas[2]
-    + rowL[5]*betas[2]*betas[2]
-    + rowL[6]*betas[0]*betas[3]
-    + rowL[7]*betas[1]*betas[3]
-    + rowL[8]*betas[2]*betas[3]
-    + rowL[9]*betas[3]*betas[3] );
-    b.at<double>(i,0) = val;
-  }
+// **下面這行的 val 一定要先宣告**
+double val = rho[i]
+- ( rowL[0]*betas[0]*betas[0]
++ rowL[1]*betas[0]*betas[1]
++ rowL[2]*betas[1]*betas[1]
++ rowL[3]*betas[0]*betas[2]
++ rowL[4]*betas[1]*betas[2]
++ rowL[5]*betas[2]*betas[2]
++ rowL[6]*betas[0]*betas[3]
++ rowL[7]*betas[1]*betas[3]
++ rowL[8]*betas[2]*betas[3]
++ rowL[9]*betas[3]*betas[3] );
+
+b.at<double>(i,0) = val;
+}
 }
 
 void PnPsolver::gauss_newton(const cv::Mat L_6x10, const cv::Mat Rho,
