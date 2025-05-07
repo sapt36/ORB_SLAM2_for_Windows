@@ -67,9 +67,9 @@ class PnPsolver {
   void SetRansacParameters(double probability = 0.99, int minInliers = 8 , int maxIterations = 300, int minSet = 4, float epsilon = 0.4,
                            float th2 = 5.991);
 
-  cv::Mat find(vector<bool> &vbInliers, int &nInliers);
+  cv::Mat find(vector<bool> vbInliers, int nInliers);
 
-  cv::Mat iterate(int nIterations, bool &bNoMore, vector<bool> &vbInliers, int &nInliers);
+  cv::Mat iterate(int nIterations, bool bNoMore, vector<bool> vbInliers, int nInliers);
 
  private:
 
@@ -93,7 +93,7 @@ class PnPsolver {
 
   void choose_control_points(void);
   void compute_barycentric_coordinates(void);
-  void fill_M(cv::Mat * M, const int row, const double * alphas, const double u, const double v);
+  void fill_M(cv::Mat M, const int row, const double * alphas, const double u, const double v);
   void compute_ccs(const double * betas, const double * ut);
   void compute_pcs(void);
 
@@ -112,7 +112,7 @@ class PnPsolver {
 
   void gauss_newton(const cv::Mat * L_6x10, const cv::Mat * Rho, double current_betas[4]);
   void compute_A_and_b_gauss_newton(const double * l_6x10, const double * rho,
-				    double cb[4], cv::Mat * A, cv::Mat * b);
+				    double cb[4], cv::Mat A, cv::Mat b);
 
   double compute_R_and_t(const double * ut, const double * betas,
 			 double R[3][3], double t[3]);

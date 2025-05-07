@@ -156,13 +156,13 @@ void PnPsolver::SetRansacParameters(double probability, int minInliers, int maxI
         mvMaxError[i] = mvSigma2[i]*th2;
 }
 
-cv::Mat PnPsolver::find(vector<bool> &vbInliers, int &nInliers)
+cv::Mat PnPsolver::find(vector<bool> vbInliers, int nInliers)
 {
     bool bFlag;
     return iterate(mRansacMaxIts,bFlag,vbInliers,nInliers);    
 }
 
-cv::Mat PnPsolver::iterate(int nIterations, bool &bNoMore, vector<bool> &vbInliers, int &nInliers)
+cv::Mat PnPsolver::iterate(int nIterations, bool bNoMore, vector<bool> vbInliers, int nInliers)
 {
     bNoMore = false;
     vbInliers.clear();
@@ -385,7 +385,7 @@ void PnPsolver::choose_control_points(void)
 
 
   // Take C1, C2, and C3 from PCA on the reference points:
-  cv::Mat * PW0 = cv::Mat(number_of_correspondences, 3, CV_64F);
+  cv::Mat PW0 = cv::Mat(number_of_correspondences, 3, CV_64F);
 
   double pw0tpw0[3 * 3], dc[3], uct[3 * 3];
   cv::Mat PW0tPW0 = cv::Mat(3, 3, CV_64F, pw0tpw0);
@@ -394,12 +394,11 @@ void PnPsolver::choose_control_points(void)
 
   for(int i = 0; i < number_of_correspondences; i++)
     for(int j = 0; j < 3; j++)
-      PW0->data.db[3 * i + j] = pws[3 * i + j] - cws[0][j];
+      PW0.data.db[3 * i + j] = pws[3 * i + j] - cws[0][j];
 
-  cvMulTransposed(PW0, &PW0tPW0, 1);
-  cvSVD(&PW0tPW0, &DC, &UCt, 0, CV_SVD_MODIFY_A | CV_SVD_U_T);
+  cv::mulTransposed(PW0, PW0tPW0, true);
+  cv::SVD::compute(PW0tPW0, DC, cv::noArray(), UCt, cv::SVD::MODIFY_A);
 
-  cvReleaseMat(&PW0);
 
   for(int i = 1; i < 4; i++) {
     double k = sqrt(dc[i - 1] / number_of_correspondences);
@@ -418,7 +417,7 @@ void PnPsolver::compute_barycentric_coordinates(void)
     for(int j = 1; j < 4; j++)
       cc[3 * i + j - 1] = cws[j][i] - cws[0][i];
 
-  cv::invert(&CC, &CC_inv, CV_SVD);
+  cv::invert(&CC, &CC_inv, cv::DECOMP_SVD);
   double * ci = cc_inv;
   for(int i = 0; i < number_of_correspondences; i++) {
     double * pi = pws + 3 * i;
@@ -433,10 +432,10 @@ void PnPsolver::compute_barycentric_coordinates(void)
   }
 }
 
-void PnPsolver::fill_M(cv::Mat * M,
+void PnPsolver::fill_M(cv::Mat M,
 		  const int row, const double * as, const double u, const double v)
 {
-  double * M1 = M->data.db + row * 12;
+  double * M1 = M.data.db + row * 12;
   double * M2 = M1 + 12;
 
   for(int i = 0; i < 4; i++) {
@@ -479,7 +478,7 @@ double PnPsolver::compute_pose(double R[3][3], double t[3])
   choose_control_points();
   compute_barycentric_coordinates();
 
-  cv::Mat * M = cv::Mat(2 * number_of_correspondences, 12, CV_64F);
+  cv::Mat M = cv::Mat(2 * number_of_correspondences, 12, CV_64F);
 
   for(int i = 0; i < number_of_correspondences; i++)
     fill_M(M, 2 * i, alphas + 4 * i, us[2 * i], us[2 * i + 1]);
@@ -489,9 +488,8 @@ double PnPsolver::compute_pose(double R[3][3], double t[3])
   cv::Mat D   = cv::Mat(12,  1, CV_64F, d);
   cv::Mat Ut  = cv::Mat(12, 12, CV_64F, ut);
 
-  cvMulTransposed(M, &MtM, 1);
-  cvSVD(&MtM, &D, &Ut, 0, CV_SVD_MODIFY_A | CV_SVD_U_T);
-  cvReleaseMat(&M);
+  cv::mulTransposed(M, MtM, true);
+  cv::SVD::compute(MtM, D, cv::noArray(), Ut, cv::SVD::MODIFY_A);
 
   double l_6x10[6 * 10], rho[6];
   cv::Mat L_6x10 = cv::Mat(6, 10, CV_64F, l_6x10);
@@ -593,7 +591,7 @@ void PnPsolver::estimate_R_and_t(double R[3][3], double t[3])
   cv::Mat ABt_U = cv::Mat(3, 3, CV_64F, abt_u);
   cv::Mat ABt_V = cv::Mat(3, 3, CV_64F, abt_v);
 
-  cvSetZero(&ABt);
+  ABt.setTo(cv::Scalar::all(0));
   for(int i = 0; i < number_of_correspondences; i++) {
     double * pc = pcs + 3 * i;
     double * pw = pws + 3 * i;
@@ -605,7 +603,7 @@ void PnPsolver::estimate_R_and_t(double R[3][3], double t[3])
     }
   }
 
-  cvSVD(&ABt, &ABt_D, &ABt_U, &ABt_V, CV_SVD_MODIFY_A);
+  cv::SVD::compute(ABt, ABt_D, ABt_U, ABt_V, cv::SVD::MODIFY_A);
 
   for(int i = 0; i < 3; i++)
     for(int j = 0; j < 3; j++)
@@ -664,7 +662,7 @@ double PnPsolver::compute_R_and_t(const double * ut, const double * betas,
 // betas10        = [B11 B12 B22 B13 B23 B33 B14 B24 B34 B44]
 // betas_approx_1 = [B11 B12     B13         B14]
 
-void PnPsolver::find_betas_approx_1(const cv::Mat * L_6x10, const cv::Mat * Rho,
+void PnPsolver::find_betas_approx_1(const cv::Mat L_6x10, const cv::Mat Rho,
 			       double * betas)
 {
   double l_6x4[6 * 4], b4[4];
@@ -678,7 +676,7 @@ void PnPsolver::find_betas_approx_1(const cv::Mat * L_6x10, const cv::Mat * Rho,
     cvmSet(&L_6x4, i, 3, cvmGet(L_6x10, i, 6));
   }
 
-  cvSolve(&L_6x4, Rho, &B4, CV_SVD);
+  cv::solve(&L_6x4, Rho, &B4, cv::DECOMP_SVD);
 
   if (b4[0] < 0) {
     betas[0] = sqrt(-b4[0]);
@@ -696,7 +694,7 @@ void PnPsolver::find_betas_approx_1(const cv::Mat * L_6x10, const cv::Mat * Rho,
 // betas10        = [B11 B12 B22 B13 B23 B33 B14 B24 B34 B44]
 // betas_approx_2 = [B11 B12 B22                            ]
 
-void PnPsolver::find_betas_approx_2(const cv::Mat * L_6x10, const cv::Mat * Rho,
+void PnPsolver::find_betas_approx_2(const cv::Mat L_6x10, const cv::Mat Rho,
 			       double * betas)
 {
   double l_6x3[6 * 3], b3[3];
@@ -709,7 +707,7 @@ void PnPsolver::find_betas_approx_2(const cv::Mat * L_6x10, const cv::Mat * Rho,
     cvmSet(&L_6x3, i, 2, cvmGet(L_6x10, i, 2));
   }
 
-  cvSolve(&L_6x3, Rho, &B3, CV_SVD);
+  cv::solve(&L_6x3, Rho, &B3, cv::DECOMP_SVD);
 
   if (b3[0] < 0) {
     betas[0] = sqrt(-b3[0]);
@@ -728,7 +726,7 @@ void PnPsolver::find_betas_approx_2(const cv::Mat * L_6x10, const cv::Mat * Rho,
 // betas10        = [B11 B12 B22 B13 B23 B33 B14 B24 B34 B44]
 // betas_approx_3 = [B11 B12 B22 B13 B23                    ]
 
-void PnPsolver::find_betas_approx_3(const cv::Mat * L_6x10, const cv::Mat * Rho,
+void PnPsolver::find_betas_approx_3(const cv::Mat L_6x10, const cv::Mat Rho,
 			       double * betas)
 {
   double l_6x5[6 * 5], b5[5];
@@ -743,7 +741,7 @@ void PnPsolver::find_betas_approx_3(const cv::Mat * L_6x10, const cv::Mat * Rho,
     cvmSet(&L_6x5, i, 4, cvmGet(L_6x10, i, 4));
   }
 
-  cvSolve(&L_6x5, Rho, &B5, CV_SVD);
+  cv::solve(&L_6x5, Rho, &B5, cv::DECOMP_SVD);
 
   if (b5[0] < 0) {
     betas[0] = sqrt(-b5[0]);
@@ -810,11 +808,11 @@ void PnPsolver::compute_rho(double * rho)
 }
 
 void PnPsolver::compute_A_and_b_gauss_newton(const double * l_6x10, const double * rho,
-					double betas[4], cv::Mat * A, cv::Mat * b)
+					double betas[4], cv::Mat A, cv::Mat b)
 {
   for(int i = 0; i < 6; i++) {
     const double * rowL = l_6x10 + i * 10;
-    double * rowA = A->data.db + i * 4;
+    double * rowA = A.data.db + i * 4;
 
     rowA[0] = 2 * rowL[0] * betas[0] +     rowL[1] * betas[1] +     rowL[3] * betas[2] +     rowL[6] * betas[3];
     rowA[1] =     rowL[1] * betas[0] + 2 * rowL[2] * betas[1] +     rowL[4] * betas[2] +     rowL[7] * betas[3];
@@ -837,7 +835,7 @@ void PnPsolver::compute_A_and_b_gauss_newton(const double * l_6x10, const double
   }
 }
 
-void PnPsolver::gauss_newton(const cv::Mat * L_6x10, const cv::Mat * Rho,
+void PnPsolver::gauss_newton(const cv::Mat L_6x10, const cv::Mat Rho,
 			double betas[4])
 {
   const int iterations_number = 5;
@@ -848,7 +846,7 @@ void PnPsolver::gauss_newton(const cv::Mat * L_6x10, const cv::Mat * Rho,
   cv::Mat X = cv::Mat(4, 1, CV_64F, x);
 
   for(int k = 0; k < iterations_number; k++) {
-    compute_A_and_b_gauss_newton(L_6x10->data.db, Rho->data.db,
+    compute_A_and_b_gauss_newton(L_6x10.data.db, Rho.data.db,
 				 betas, &A, &B);
     qr_solve(&A, &B, &X);
 
@@ -857,13 +855,13 @@ void PnPsolver::gauss_newton(const cv::Mat * L_6x10, const cv::Mat * Rho,
   }
 }
 
-void PnPsolver::qr_solve(cv::Mat * A, cv::Mat * b, cv::Mat * X)
+void PnPsolver::qr_solve(cv::Mat A, cv::Mat b, cv::Mat X)
 {
   static int max_nr = 0;
   static double * A1, * A2;
 
-  const int nr = A->rows;
-  const int nc = A->cols;
+  const int nr = A.rows;
+  const int nc = A.cols;
 
   if (max_nr != 0 && max_nr < nr) {
     delete [] A1;
@@ -875,7 +873,7 @@ void PnPsolver::qr_solve(cv::Mat * A, cv::Mat * b, cv::Mat * X)
     A2 = new double[nr];
   }
 
-  double * pA = A->data.db, * ppAkk = pA;
+  double * pA = A.data.db, * ppAkk = pA;
   for(int k = 0; k < nc; k++) {
     double * ppAik = ppAkk, eta = fabs(*ppAik);
     for(int i = k + 1; i < nr; i++) {
@@ -919,7 +917,7 @@ void PnPsolver::qr_solve(cv::Mat * A, cv::Mat * b, cv::Mat * X)
   }
 
   // b <- Qt b
-  double * ppAjj = pA, * pb = b->data.db;
+  double * ppAjj = pA, * pb = b.data.db;
   for(int j = 0; j < nc; j++) {
     double * ppAij = ppAjj, tau = 0;
     for(int i = j; i < nr; i++)	{
@@ -936,7 +934,7 @@ void PnPsolver::qr_solve(cv::Mat * A, cv::Mat * b, cv::Mat * X)
   }
 
   // X = R-1 b
-  double * pX = X->data.db;
+  double * pX = X.data.db;
   pX[nc - 1] = pb[nc - 1] / A2[nc - 1];
   for(int i = nc - 2; i >= 0; i--) {
     double * ppAij = pA + i * nc + (i + 1), sum = 0;
