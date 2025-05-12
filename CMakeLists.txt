@@ -5,7 +5,7 @@ IF(NOT CMAKE_BUILD_TYPE)
 #  SET(CMAKE_BUILD_TYPE Release)
 ENDIF()
 
-#MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
+MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -W0 -MT -bigobj")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W0 -MT -bigobj")
@@ -44,6 +44,19 @@ find_package(Pangolin REQUIRED)
 #find_package(Eigen3 3.1.0 REQUIRED)
 #find_package(Pangolin REQUIRED)
 
+# RealSense SDK
+set(LIBREALSENSE2_ROOT "D:/Intel RealSense SDK 2.0")
+find_path(LIBREALSENSE2_INCLUDE_DIR
+  NAMES librealsense2/rs.hpp
+  HINTS "${LIBREALSENSE2_ROOT}/include")
+find_library(LIBREALSENSE2_LIBRARY
+  NAMES realsense2
+  HINTS "${LIBREALSENSE2_ROOT}/lib/x64")
+
+if(NOT LIBREALSENSE2_INCLUDE_DIR OR NOT LIBREALSENSE2_LIBRARY)
+  message(FATAL_ERROR "Could not find RealSense2 SDK in ${LIBREALSENSE2_ROOT}")
+endif()
+
 include_directories(
 ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/include
@@ -51,6 +64,7 @@ ${OpenCV_INCLUDE_DIRS}
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
 ${PROJECT_SOURCE_DIR}/Thirdparty/Pangolin/include
+${LIBREALSENSE2_ROOT}/include        # <-- RealSense 標頭路徑
 )
 
 #set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
@@ -76,6 +90,7 @@ src/KeyFrameDatabase.cc
 src/Sim3Solver.cc
 src/Initializer.cc
 src/Viewer.cc
+src/SGFilter.cc
 )
 
 LINK_DIRECTORIES(
@@ -89,6 +104,7 @@ ${PROJECT_NAME}
 ${OpenCV_LIBS}
 ${EIGEN3_LIBS}
 ${Pangolin_LIBRARIES}
+${LIBREALSENSE2_LIBRARY}               # <-- RealSense lib
 DBoW2.lib
 g2o.lib
 pangolin.lib
@@ -127,3 +143,6 @@ add_executable(mono_euroc
 Examples/Monocular/mono_euroc.cc)
 target_link_libraries(mono_euroc ${PROJECT_NAME})
 
+add_executable(rgbd_real_sense 
+IntelRealSense/rgbd_real_sense.cc)
+target_link_libraries(rgbd_real_sense ${PROJECT_NAME})
