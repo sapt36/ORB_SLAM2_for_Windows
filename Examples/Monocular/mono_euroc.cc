@@ -19,14 +19,19 @@
 */
 
 
-#include<iostream>
-#include<algorithm>
-#include<fstream>
-#include<chrono>
+#include <iostream>
+#include <algorithm>
+#include <fstream>
+#include <chrono>
+#include <thread>
+#include <sstream>
+#include <opencv2/core/core.hpp>
+#include <opencv2/imgcodecs.hpp>   // ← 加這行
+#include <System.h>                // ← 加這行
 
-#include<opencv2/core/core.hpp>
-
-#include<System.h>
+#if defined(_MSC_VER)
+#define COMPILEDWITHC11          // 讓程式走 steady_clock
+#endif
 
 using namespace std;
 
@@ -70,7 +75,7 @@ int main(int argc, char **argv)
     for(int ni=0; ni<nImages; ni++)
     {
         // Read image from file
-        im = cv::imread(vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED);
+        im = cv::imread(vstrImageFilenames[ni], cv::IMREAD_UNCHANGED);
         double tframe = vTimestamps[ni];
 
         if(im.empty())
@@ -83,7 +88,7 @@ int main(int argc, char **argv)
 #ifdef COMPILEDWITHC11
         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 #else
-        std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
+        auto t1 = std::chrono::steady_clock::now();
 #endif
 
         // Pass the image to the SLAM system
@@ -92,7 +97,7 @@ int main(int argc, char **argv)
 #ifdef COMPILEDWITHC11
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 #else
-        std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
+        auto t2 = std::chrono::steady_clock::now();
 #endif
 
         double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
@@ -106,8 +111,9 @@ int main(int argc, char **argv)
         else if(ni>0)
             T = tframe-vTimestamps[ni-1];
 
-        if(ttrack<T)
-            usleep((T-ttrack)*1e6);
+        if (ttrack < T)
+            std::this_thread::sleep_for(
+                std::chrono::microseconds(static_cast<int>((T - ttrack) * 1e6)));
     }
 
     // Stop all threads
